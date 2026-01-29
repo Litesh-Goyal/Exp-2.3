@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SVG Line Drawing Tool</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #f0f0f0;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #d81b60;
+    }
+
+    #controls {
+      margin-bottom: 10px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    button {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(90deg, #ff6a88, #ff99ac);
+      color: white;
+      font-weight: bold;
+      transition: transform 0.2s;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+    }
+
+    input[type="color"] {
+      width: 40px;
+      height: 40px;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    svg {
+      border: 2px solid #d81b60;
+      background: white;
+      width: 90vw;
+      height: 70vh;
+      touch-action: none; /* Prevent scrolling on touch devices */
+    }
+  </style>
+</head>
+<body>
+  <h1>SVG Line Drawing Tool</h1>
+
+  <div id="controls">
+    <label for="colorPicker">Select Color: </label>
+    <input type="color" id="colorPicker" value="#ff0000">
+    <button id="undoBtn">Undo</button>
+  </div>
+
+  <svg id="canvas"></svg>
+
+  <script>
+    const svg = document.getElementById('canvas');
+    const colorPicker = document.getElementById('colorPicker');
+    const undoBtn = document.getElementById('undoBtn');
+
+    let drawing = false;
+    let currentLine = null;
+    let shapes = [];
+
+    // Get mouse or touch coordinates in SVG space
+    function getSVGPoint(evt) {
+      const point = svg.createSVGPoint();
+      if(evt.touches) { // touch event
+        point.x = evt.touches[0].clientX;
+        point.y = evt.touches[0].clientY;
+      } else { // mouse event
+        point.x = evt.clientX;
+        point.y = evt.clientY;
+      }
+      return point.matrixTransform(svg.getScreenCTM().inverse());
+    }
+
+    svg.addEventListener('mousedown', startDrawing);
+    svg.addEventListener('touchstart', startDrawing);
+
+    function startDrawing(e) {
+      e.preventDefault();
+      const svgPoint = getSVGPoint(e);
+
+      currentLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      currentLine.setAttribute("x1", svgPoint.x);
+      currentLine.setAttribute("y1", svgPoint.y);
+      currentLine.setAttribute("x2", svgPoint.x);
+      currentLine.setAttribute("y2", svgPoint.y);
+      currentLine.setAttribute("stroke", colorPicker.value);
+      currentLine.setAttribute("stroke-width", 3);
+      currentLine.setAttribute("stroke-linecap", "round");
+
+      svg.appendChild(currentLine);
+      drawing = true;
+    }
+
+    svg.addEventListener('mousemove', drawLine);
+    svg.addEventListener('touchmove', drawLine);
+
+    function drawLine(e) {
+      if(!drawing || !currentLine) return;
+      e.preventDefault();
+      const svgPoint = getSVGPoint(e);
+      currentLine.setAttribute("x2", svgPoint.x);
+      currentLine.setAttribute("y2", svgPoint.y);
+    }
+
+    svg.addEventListener('mouseup', endDrawing);
+    svg.addEventListener('mouseleave', endDrawing);
+    svg.addEventListener('touchend', endDrawing);
+
+    function endDrawing(e) {
+      if(currentLine) {
+        shapes.push(currentLine);
+        currentLine = null;
+      }
+      drawing = false;
+    }
+
+    undoBtn.addEventListener('click', () => {
+      if(shapes.length > 0) {
+        const lastShape = shapes.pop();
+        svg.removeChild(lastShape);
+      }
+    });
+  </script>
+</body>
+</html>
